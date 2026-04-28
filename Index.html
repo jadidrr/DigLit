@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Room That Remembers</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: rgba(255, 255, 255, 0.08);
+      --panel-strong: rgba(255, 255, 255, 0.14);
+      --text: #f3efe7;
+      --muted: #b9b0a4;
+      --accent: #d6a75c;
+      --accent-soft: rgba(214, 167, 92, 0.18);
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, 'Times New Roman', serif;
+      color: var(--text);
+      background:
+              radial-gradient(circle at 20% 10%, rgba(214, 167, 92, 0.14), transparent 32%),
+              radial-gradient(circle at 80% 20%, rgba(105, 126, 184, 0.18), transparent 30%),
+              linear-gradient(135deg, #090a0f, var(--bg));
+      overflow-x: hidden;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.05;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+    }
+
+    header {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 3rem 1.2rem;
+      text-align: center;
+    }
+
+    .hero {
+      max-width: 850px;
+      padding: 3rem 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.055);
+      box-shadow: 0 30px 90px var(--shadow);
+      border-radius: 28px;
+      backdrop-filter: blur(12px);
+      animation: rise 1.2s ease both;
+    }
+
+    h1 {
+      margin: 0 0 1rem;
+      font-size: clamp(2.4rem, 8vw, 5.6rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+      font-weight: 500;
+    }
+
+    .subtitle {
+      max-width: 620px;
+      margin: 0 auto 2rem;
+      color: var(--muted);
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      line-height: 1.7;
+    }
+
+    .start-btn, .choice, .reset-btn {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: var(--accent-soft);
+      color: var(--text);
+      padding: 0.85rem 1.2rem;
+      border-radius: 999px;
+      font-size: 0.98rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+      font-family: inherit;
+    }
+
+    .start-btn:hover, .choice:hover, .reset-btn:hover {
+      transform: translateY(-2px);
+      background: rgba(214, 167, 92, 0.3);
+      border-color: rgba(214, 167, 92, 0.6);
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 2rem 1.2rem 6rem;
+      display: none;
+    }
+
+    .progress-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 1rem 0;
+      backdrop-filter: blur(8px);
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .progress {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #f2d79f);
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+
+    .room {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.2rem;
+    }
+
+    .card {
+      display: none;
+      padding: clamp(1.3rem, 4vw, 2.2rem);
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 26px;
+      box-shadow: 0 18px 55px rgba(0, 0, 0, 0.22);
+      animation: fadeIn 0.75s ease both;
+    }
+
+    .card.active {
+      display: block;
+    }
+
+    .section-title {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      font-family: Arial, sans-serif;
+    }
+
+    .story-text {
+      font-size: clamp(1.15rem, 2vw, 1.45rem);
+      line-height: 1.85;
+      margin: 0;
+    }
+
+    .whisper {
+      margin-top: 1.5rem;
+      padding: 1rem 1.1rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(0, 0, 0, 0.18);
+      color: var(--muted);
+      line-height: 1.65;
+      font-style: italic;
+    }
+
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-top: 1.6rem;
+    }
+
+    .inventory {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      border-radius: 18px;
+      color: var(--muted);
+      line-height: 1.6;
+      min-height: 70px;
+    }
+
+    .memory-word {
+      display: inline-block;
+      margin: 0.18rem;
+      padding: 0.22rem 0.6rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--text);
+      border: 1px solid rgba(214, 167, 92, 0.22);
+      font-size: 0.95rem;
+    }
+
+    .ending {
+      text-align: center;
+    }
+
+    .ending h2 {
+      font-size: clamp(2rem, 5vw, 3.4rem);
+      margin: 0 0 1rem;
+      font-weight: 500;
+      letter-spacing: -0.04em;
+    }
+
+    .author-note {
+      margin-top: 2rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding-top: 1.2rem;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem 1rem;
+      font-size: 0.9rem;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (min-width: 760px) {
+      .room {
+        grid-template-columns: 1fr 280px;
+        align-items: start;
+      }
+
+      .story-area {
+        min-width: 0;
+      }
+
+      .side-panel {
+        position: sticky;
+        top: 90px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="noise"></div>
+
+<header id="cover">
+  <section class="hero">
+    <h1>The Room That Remembers</h1>
+    <p class="subtitle">
+      A short interactive digital literature piece about memory, avoidance, and the strange way ordinary objects keep pieces of us even when we try to move on.
+    </p>
+    <button class="start-btn" onclick="startStory()">Enter the room</button>
+  </section>
+</header>
+
+<main id="story">
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Memory collected</span>
+      <span id="progressText">0 / 4</span>
+    </div>
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+  </div>
+
+  <section class="room">
+    <div class="story-area">
+      <article class="card active" id="scene0">
+        <div class="section-title">Threshold</div>
+        <p class="story-text">
+          The door opens before you touch it. Inside, the room waits in the dark, patient as an unanswered message. Nothing moves, but everything seems awake: the desk, the window, the mirror, the small box under the bed. You came here to clean. The room knows you came here to remember.
+        </p>
+        <div class="whisper">Choose an object. The order changes the way the room speaks.</div>
+        <div class="choices">
+          <button class="choice" onclick="visit('desk')">Open the desk</button>
+          <button class="choice" onclick="visit('window')">Look through the window</button>
+          <button class="choice" onclick="visit('mirror')">Face the mirror</button>
+          <button class="choice" onclick="visit('box')">Pull out the box</button>
+        </div>
+      </article>
+
+      <article class="card" id="desk">
+        <div class="section-title">The Desk</div>
+        <p class="story-text">
+          The desk is covered in old lists. Finish this. Fix that. Reply later. Become better by Monday. The handwriting becomes smaller near the bottom of each page, as if the hand holding the pen grew tired of believing itself.
+        </p>
+        <div class="whisper">You keep one word from the page: <strong>unfinished</strong>.</div>
+        <div class="choices"><button class="choice" onclick="backToRoom('unfinished')">Return to the room</button></div>
+      </article>
+
+      <article class="card" id="window">
+        <div class="section-title">The Window</div>
+        <p class="story-text">
+          Outside, the city glows like it has somewhere to be. Cars move in bright lines. Windows in other buildings blink on and off, each one holding a life that looks more organized from a distance. You press your palm to the glass and realize comparison is just loneliness wearing binoculars.
+        </p>
+        <div class="whisper">You keep one word from the glass: <strong>elsewhere</strong>.</div>
+        <div class="choices"><button class="choice" onclick="backToRoom('elsewhere')">Return to the room</button></div>
+      </article>
+
+      <article class="card" id="mirror">
+        <div class="section-title">The Mirror</div>
+        <p class="story-text">
+          The mirror does not show your face at first. It shows your posture: shoulders slightly raised, jaw ready for impact, eyes practicing calm. Then your reflection appears, not cruelly, not kindly, but honestly. You have been mistaking survival for failure.
+        </p>
+        <div class="whisper">You keep one word from the reflection: <strong>survived</strong>.</div>
+        <div class="choices"><button class="choice" onclick="backToRoom('survived')">Return to the room</button></div>
+      </article>
+
+      <article class="card" id="box">
+        <div class="section-title">The Box</div>
+        <p class="story-text">
+          Under the bed, the box is heavier than dust should be. Inside are receipts, photos, ticket stubs, a broken charger, and a note you once wrote to a future version of yourself. It says: “I hope you are kinder by now.” You fold it carefully, because hope is fragile even when it is old.
+        </p>
+        <div class="whisper">You keep one word from the note: <strong>kinder</strong>.</div>
+        <div class="choices"><button class="choice" onclick="backToRoom('kinder')">Return to the room</button></div>
+      </article>
+
+      <article class="card ending" id="ending">
+        <div class="section-title">Exit</div>
+        <h2>The room grows lighter.</h2>
+        <p class="story-text" id="endingText"></p>
+        <div class="author-note">
+          <strong>Author’s Note:</strong> This piece uses interaction to make reading feel like entering a memory space. The reader chooses objects in a room, collects words, and creates a slightly personalized ending. The project explores how digital literature can combine story, design, and user choice to make reflection feel active instead of passive.
+        </div>
+        <div class="choices" style="justify-content:center;"><button class="reset-btn" onclick="resetStory()">Begin again</button></div>
+      </article>
+    </div>
+
+    <aside class="side-panel card active">
+      <div class="section-title">Collected Words</div>
+      <div class="inventory" id="inventory">The room is still quiet.</div>
+    </aside>
+  </section>
+</main>
+
+<footer>
+  Digital Literature Project — ENGL 215
+</footer>
+
+<script>
+  const visited = new Set();
+  const collected = [];
+
+  function startStory() {
+    document.getElementById('cover').style.display = 'none';
+    document.getElementById('story').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showScene(id) {
+    document.querySelectorAll('.story-area .card').forEach(card => card.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function visit(id) {
+    showScene(id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function backToRoom(word) {
+    if (!visited.has(word)) {
+      visited.add(word);
+      collected.push(word);
+    }
+
+    updateInventory();
+
+    if (collected.length === 4) {
+      buildEnding();
+      showScene('ending');
+    } else {
+      showScene('scene0');
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateInventory() {
+    const inventory = document.getElementById('inventory');
+    const progressText = document.getElementById('progressText');
+    const progressBar = document.getElementById('progressBar');
+
+    if (collected.length === 0) {
+      inventory.textContent = 'The room is still quiet.';
+    } else {
+      inventory.innerHTML = collected.map(word => `<span class="memory-word">${word}</span>`).join(' ');
+    }
+
+    progressText.textContent = `${collected.length} / 4`;
+    progressBar.style.width = `${(collected.length / 4) * 100}%`;
+  }
+
+  function buildEnding() {
+    const sentence = `You leave with four words: ${collected.join(', ')}. They do not explain everything, but they make a shape you can carry. The room does not ask you to become someone else. It only asks you to stop abandoning the person who has been trying to get you here.`;
+    document.getElementById('endingText').textContent = sentence;
+  }
+
+  function resetStory() {
+    visited.clear();
+    collected.length = 0;
+    updateInventory();
+    showScene('scene0');
+    document.getElementById('cover').style.display = 'grid';
+    document.getElementById('story').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
